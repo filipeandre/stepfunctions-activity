@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  StepFuntions
+
+  Sample SAM Template for StepFuntions
+
+Resources:
+
+
+  StateMachineRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Principal:
+            Service:
+            - "states.amazonaws.com"
+          Action:
+          - "sts:AssumeRole"
+      Path: "/"
+
+  Activity:
+    Type: "AWS::StepFunctions::Activity"
+    Properties:
+      Name: activity
+
+  StateMachine:
+    Type: "AWS::StepFunctions::StateMachine"
+    Properties:
+      RoleArn: !GetAtt StateMachineRole.Arn
+      StateMachineName: ScheduledStateMachine
+      DefinitionString: !Sub |-
+        {
+          "Comment": "Activity Example",
+          "StartAt": "Activity",
+          "States": {
+            "Activity": {
+              "Type": "Task",
+              "TimeoutSeconds": 150,
+              "HeartbeatSeconds": 30,
+              "Resource": "${Activity}",
+              "End": true,
+              "Catch": [
+                {
+                  "ErrorEquals": [
+                    "States.Timeout"
+                  ],
+                  "Next": "Timeout"
+                }
+              ]
+            },
+            "Timeout": {
+              "Type": "Fail",
+              "Cause": "Failed due to timeout"
+            }
+          }
+        }
+
+
+Outputs:
+  ActivityArn:
+    Description: Activity ARN
+    Value: !Ref Activity
